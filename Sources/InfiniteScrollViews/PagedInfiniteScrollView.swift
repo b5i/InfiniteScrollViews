@@ -40,7 +40,7 @@ import UIKit
 /// - Content: a View.
 /// - ChangeIndex: A type of data that will be given to draw the views and that will be increased and drecreased. It could be for example an Int, a Date or whatever you want.
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Comparable>: UIViewControllerRepresentable {
+public struct PagedInfiniteScrollView<Content: View, ChangeIndex>: UIViewControllerRepresentable {
     
     /// Data that will be passed to draw the view and get its frame.
     public var changeIndex: Binding<ChangeIndex>
@@ -120,6 +120,33 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Comparable>: U
     
     /// The orientation of the page-by-page navigation.
     public let navigationOrientation: UIPageViewController.NavigationOrientation
+    
+    /// Creates a new instance of PagedInfiniteScrollView.
+    /// - Parameters:
+    ///   - changeIndex: Data that will be passed to draw the view and get its frame.
+    ///   - content: Function called to get the content to display for a particular ChangeIndex.
+    ///   - increaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the top/left). See definition in class to learn more.
+    ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the bottom/right). See definition in class to learn more.
+    ///   - shouldAnimateBetween: Function that will return a boolean indicating if there's need to animate the change between two given ChangeIndex, it also returns the direction of the animation. If the boolean is false (no need to animate), the direction of the animation won't be used. In most of the cases you won't want to animate if the two values are equals because it would animate barely everytime during the app use.
+    ///   - transitionStyle: The style for transitions between pages.
+    ///   - navigationOrientation: The orientation of the page-by-page navigation.
+    public init(
+        changeIndex: Binding<ChangeIndex>,
+        content: @escaping (ChangeIndex) -> Content,
+        increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        shouldAnimateBetween: @escaping (ChangeIndex, ChangeIndex) -> (Bool, UIPageViewController.NavigationDirection),
+        transitionStyle: UIPageViewController.TransitionStyle,
+        navigationOrientation: UIPageViewController.NavigationOrientation
+    ) {
+        self.changeIndex = changeIndex
+        self.content = content
+        self.increaseIndexAction = increaseIndexAction
+        self.decreaseIndexAction = decreaseIndexAction
+        self.shouldAnimateBetween = shouldAnimateBetween
+        self.transitionStyle = transitionStyle
+        self.navigationOrientation = navigationOrientation
+    }
     
     public func makeUIViewController(context: Context) -> UIPageViewController {
         /// Creates the main view and set it in the ``UIPageViewController``.

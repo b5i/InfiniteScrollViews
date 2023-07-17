@@ -44,7 +44,7 @@ import UIKit
 public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentable {
     public typealias UIViewType = UIInfiniteScrollView
     
-    /// Frame of the view
+    /// Frame of the view.
     public let frame: CGRect
     
     /// Data that will be passed to draw the view and get its frame.
@@ -118,6 +118,33 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     
     /// Orientation of the ScrollView
     public let orientation: UIInfiniteScrollView<ChangeIndex>.Orientation
+    
+    /// Creates a new instance of InfiniteScrollView
+    /// - Parameters:
+    ///   - frame: Frame of the view.
+    ///   - changeIndex: Data that will be passed to draw the view and get its frame.
+    ///   - content: Function called to get the content to display for a particular ChangeIndex.
+    ///   - contentFrame: The frame of the content to be displayed.
+    ///   - increaseIndexAction: Function that get the ChangeIndex after another. Should return nil if there is no more content to display (end of the ScrollView at the bottom/right).
+    ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the ScrollView at the top/left).
+    ///   - orientation: Orientation of the ScrollView.
+    public init(
+        frame: CGRect,
+        changeIndex: ChangeIndex,
+        content: @escaping (ChangeIndex) -> Content,
+        contentFrame: @escaping (ChangeIndex) -> CGRect,
+        increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        orientation: UIInfiniteScrollView<ChangeIndex>.Orientation
+    ) {
+        self.frame = frame
+        self.changeIndex = changeIndex
+        self.content = content
+        self.contentFrame = contentFrame
+        self.increaseIndexAction = increaseIndexAction
+        self.decreaseIndexAction = decreaseIndexAction
+        self.orientation = orientation
+    }
     
     public func makeUIView(context: Context) -> UIInfiniteScrollView<ChangeIndex> {
         let convertedClosure: (ChangeIndex) -> UIView = { changeIndex in
@@ -212,7 +239,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     /// ```
     private let changeIndexDecreaseAction: (ChangeIndex) -> ChangeIndex?
     
-    /// Orientation of the ScrollView
+    /// Orientation of the ScrollView.
     private let orientation: Orientation
     
     /// Array containing the displayed views and their associated data.
@@ -226,7 +253,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     ///   - changeIndex: Data that will be passed to draw the view and get its frame, for the first view that will be displayed at init.
     ///   - changeIndexIncreaseAction: Function that get the ChangeIndex after another. Should return nil if there is no more content to display (end of the ScrollView at the bottom/right).
     ///   - changeIndexDecreaseAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the ScrollView at the top/left).
-    ///   - orientation: Orientation of the ScrollView
+    ///   - orientation: Orientation of the ScrollView.
     public init(
         frame: CGRect,
         content: @escaping (ChangeIndex) -> UIView,
