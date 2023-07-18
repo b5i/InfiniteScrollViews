@@ -412,20 +412,22 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     public override func layoutSubviews() {
         super.layoutSubviews()
         /// Get the before and after indexes.
-        let beforeIndex =
-        if let firstchangeIndex = visibleLabels.first {
-            self.changeIndexDecreaseAction(firstchangeIndex.1)
-        } else {
-            /// No view in visibleLabels, need to create one with the current changeIndex
-            self.changeIndexDecreaseAction(changeIndex)
-        }
-        let afterIndex =
-        if let lastchangeIndex = visibleLabels.last {
-            self.changeIndexIncreaseAction(lastchangeIndex.1)
-        } else {
-            /// No view in visibleLabels, need to create one with the current changeIndex
-            self.changeIndexIncreaseAction(changeIndex)
-        }
+        let beforeIndex = {
+            if let firstchangeIndex = self.visibleLabels.first {
+                return self.changeIndexDecreaseAction(firstchangeIndex.1)
+            } else {
+                /// No view in visibleLabels, need to create one with the current changeIndex
+                return self.changeIndexDecreaseAction(self.changeIndex)
+            }
+        }()
+        let afterIndex = {
+            if let lastchangeIndex = self.visibleLabels.last {
+                return self.changeIndexIncreaseAction(lastchangeIndex.1)
+            } else {
+                /// No view in visibleLabels, need to create one with the current changeIndex
+                return self.changeIndexIncreaseAction(self.changeIndex)
+            }
+        }()
         self.recenterIfNecessary(beforeIndexUndefined: beforeIndex == nil, afterIndexUndefined: afterIndex == nil)
         
         switch orientation {
