@@ -21,7 +21,9 @@ You want to draw an "infinite" calendar component like the one in the base Calen
         contentFrame: @escaping (ChangeIndex) -> CGRect,
         increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
         decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
-        orientation: UIInfiniteScrollView<ChangeIndex>.Orientation
+        orientation: UIInfiniteScrollView<ChangeIndex>.Orientation,
+        updateBinding: Binding<Bool>? = nil,
+        spacing: CGFloat = 0
    )
    ```
    - frame: the frame of the InfiniteScrollView.
@@ -31,6 +33,8 @@ You want to draw an "infinite" calendar component like the one in the base Calen
    - increaseIndexAction: the query from the InfiniteScrollView to get the value after a certain ChangeIndex (recursive logic).
    - decreaseIndexAction: the query from the InfiniteScrollView to get the value before a certain ChangeIndex (recursive logic).
    - orientation: the orientation of the InfiniteScrollView.
+   - updateBinding: Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
+   - spacing: Space between the views.
 2. Let's see how content, increaseIndexAction and decreaseIndexAction work:
    1. For our MonthView we need to provide a Date so that it will extract the month to display.
       It could be declared like this:
