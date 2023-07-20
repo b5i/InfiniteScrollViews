@@ -119,11 +119,11 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     /// Orientation of the ScrollView
     public let orientation: UIInfiniteScrollView<ChangeIndex>.Orientation
     
-    /// Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
-    public var updateBinding: Binding<Bool>?
-    
     /// Space between the views.
     public let spacing: CGFloat
+    
+    /// Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
+    public var updateBinding: Binding<Bool>?
     
     /// Creates a new instance of InfiniteScrollView
     /// - Parameters:
@@ -134,8 +134,8 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     ///   - increaseIndexAction: Function that get the ChangeIndex after another. Should return nil if there is no more content to display (end of the ScrollView at the bottom/right).
     ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the ScrollView at the top/left).
     ///   - orientation: Orientation of the ScrollView.
-    ///   - updateBinding: Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
     ///   - spacing: Space between the views.
+    ///   - updateBinding: Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
     public init(
         frame: CGRect,
         changeIndex: ChangeIndex,
@@ -144,8 +144,8 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
         increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
         decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
         orientation: UIInfiniteScrollView<ChangeIndex>.Orientation,
-        updateBinding: Binding<Bool>? = nil,
-        spacing: CGFloat = 0
+        spacing: CGFloat = 0,
+        updateBinding: Binding<Bool>? = nil
     ) {
         self.frame = frame
         self.changeIndex = changeIndex
@@ -154,8 +154,8 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
         self.increaseIndexAction = increaseIndexAction
         self.decreaseIndexAction = decreaseIndexAction
         self.orientation = orientation
-        self.updateBinding = updateBinding
         self.spacing = spacing
+        self.updateBinding = updateBinding
     }
     
     public func makeUIView(context: Context) -> UIInfiniteScrollView<ChangeIndex> {
