@@ -2,6 +2,9 @@
 
 InfiniteScrollViews groups some useful SwiftUI and UIKit components.
 
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fb5i%2FInfiniteScrollViews%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/b5i/InfiniteScrollViews)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fb5i%2FInfiniteScrollViews%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/b5i/InfiniteScrollViews)
+
 ## A recursive logic
 As we can't really generate an infinity of views and put them in a ScrollView, we need to use **a recursive logic**. The way UIInfiniteScrollView and UIPagedInfiniteScrollView can display an "infinite" amount of content works thanks to this logic:
 1. You have a generic type **ChangeIndex**, it is a piece of data that the component will give you in exchange of a View/UIViewController.
