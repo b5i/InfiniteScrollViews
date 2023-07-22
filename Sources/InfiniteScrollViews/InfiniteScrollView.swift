@@ -55,7 +55,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     
     /// The frame of the content to be displayed.
     public let contentFrame: (ChangeIndex) -> CGRect
-        
+    
     /// Function that get the ChangeIndex after another.
     ///
     /// Should return nil if there is no more content to display (end of the ScrollView at the bottom/right).
@@ -119,6 +119,11 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     /// Orientation of the ScrollView
     public let orientation: UIInfiniteScrollView<ChangeIndex>.Orientation
     
+    /// Action to do when the user pull the InfiniteScrollView to the top to refresh the content, should be nil if there is no need to refresh anything.
+    ///
+    /// Gives an action that must be used in order for refresh to end.
+    public let refreshAction: ((@escaping () -> Void) -> ())?
+    
     /// Space between the views.
     public let spacing: CGFloat
     
@@ -134,6 +139,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     ///   - increaseIndexAction: Function that get the ChangeIndex after another. Should return nil if there is no more content to display (end of the ScrollView at the bottom/right).
     ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the ScrollView at the top/left).
     ///   - orientation: Orientation of the ScrollView.
+    ///   - refreshAction: Action to do when the user pull the InfiniteScrollView to the top to refresh the content, should be nil if there is no need to refresh anything. Gives an action that must be used in order for refresh to end.
     ///   - spacing: Space between the views.
     ///   - updateBinding: Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
     public init(
@@ -144,6 +150,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
         increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
         decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
         orientation: UIInfiniteScrollView<ChangeIndex>.Orientation,
+        refreshAction: ((@escaping () -> Void) -> ())? = nil,
         spacing: CGFloat = 0,
         updateBinding: Binding<Bool>? = nil
     ) {
@@ -154,6 +161,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
         self.increaseIndexAction = increaseIndexAction
         self.decreaseIndexAction = decreaseIndexAction
         self.orientation = orientation
+        self.refreshAction = refreshAction
         self.spacing = spacing
         self.updateBinding = updateBinding
     }
@@ -170,6 +178,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
             changeIndexIncreaseAction: increaseIndexAction,
             changeIndexDecreaseAction: decreaseIndexAction,
             orientation: orientation,
+            refreshAction: refreshAction,
             spacing: spacing
         )
     }
@@ -263,11 +272,16 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     /// Orientation of the ScrollView.
     private let orientation: Orientation
     
-    /// Array containing the displayed views and their associated data.
-    private var visibleLabels: [(UIView, ChangeIndex)]
+    /// Action to do when the user pull the InfiniteScrollView to the top to refresh the content, should be nil if there is no need to refresh anything.
+    ///
+    /// Gives an action that must be used in order for refresh to end.
+    public let refreshAction: ((@escaping () -> Void) -> ())?
     
     /// Space between the views.
     private let spacing: CGFloat
+    
+    /// Array containing the displayed views and their associated data.
+    private var visibleLabels: [(UIView, ChangeIndex)]
     
     /// Creates an instance of UIInfiniteScrollView.
     /// - Parameters:
@@ -278,6 +292,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     ///   - changeIndexIncreaseAction: Function that get the ChangeIndex after another. Should return nil if there is no more content to display (end of the ScrollView at the bottom/right).
     ///   - changeIndexDecreaseAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the ScrollView at the top/left).
     ///   - orientation: Orientation of the ScrollView.
+    ///   - refreshAction: Action to do when the user pull the InfiniteScrollView to the top to refresh the content, should be nil if there is no need to refresh anything. Gives an action that must be used in order for refresh to end.
     ///   - spacing: Space between the views.
     public init(
         frame: CGRect,
@@ -287,6 +302,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         changeIndexIncreaseAction: @escaping (ChangeIndex) -> ChangeIndex?,
         changeIndexDecreaseAction: @escaping (ChangeIndex) -> ChangeIndex?,
         orientation: Orientation,
+        refreshAction: ((@escaping () -> Void) -> ())?,
         spacing: CGFloat = 0
     ) {
         self.visibleLabels = []
@@ -296,6 +312,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         self.changeIndexIncreaseAction = changeIndexIncreaseAction
         self.changeIndexDecreaseAction = changeIndexDecreaseAction
         self.orientation = orientation
+        self.refreshAction = refreshAction
         self.spacing = spacing
         super.init(frame: frame)
         /// Increase the size of the ScrollView orientation for the view to be scrollable.
@@ -308,11 +325,26 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         self.translatesAutoresizingMaskIntoConstraints = false
         self.showsHorizontalScrollIndicator = false
         self.showsVerticalScrollIndicator = false
+        if self.refreshAction != nil {
+            self.refreshControl = UIRefreshControl()
+            self.refreshControl?.addTarget(self, action: #selector(refreshActionMethod), for: .valueChanged)
+        }
     }
     
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented, please open a PR if you would like it to be implemented")
+    }
+    
+    /// Execute the scroll action if it is defined.
+    @objc private func refreshActionMethod() {
+        if let refreshAction = self.refreshAction, let endAction = self.refreshControl?.endRefreshing {
+            refreshAction(endAction)
+        } else {
+            DispatchQueue.main.async {
+                self.refreshControl?.endRefreshing()
+            }
+        }
     }
     
     /// Recenter content periodically to achieve impression of infinite scrolling
@@ -484,6 +516,8 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     private func insertView() -> UIView {
         let view = content(changeIndex)
         view.frame = self.contentFrame(changeIndex)
+        view.layer.borderColor = .init(red: 1, green: 1, blue: 1, alpha: 1)
+        view.layer.borderWidth = 3
         self.addSubview(view)
         return view
     }
