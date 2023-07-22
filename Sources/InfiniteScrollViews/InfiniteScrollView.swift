@@ -516,8 +516,8 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     private func insertView() -> UIView {
         let view = content(changeIndex)
         view.frame = self.contentFrame(changeIndex)
-        view.layer.borderColor = .init(red: 1, green: 1, blue: 1, alpha: 1)
-        view.layer.borderWidth = 3
+        //view.layer.borderColor = .init(red: 1, green: 1, blue: 1, alpha: 1)
+        //view.layer.borderWidth = 3
         self.addSubview(view)
         return view
     }
