@@ -127,6 +127,11 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     /// Space between the views.
     public let spacing: CGFloat
     
+    /// Number that will be used to multiply to the view frame height/width so it can scroll.
+    ///
+    /// Can be used to reduce high-speed scroll lag, set it higher if you need to increment the maximum scroll speed.
+    public let contentMultiplier: CGFloat
+    
     /// Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
     public var updateBinding: Binding<Bool>?
     
@@ -141,6 +146,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
     ///   - orientation: Orientation of the ScrollView.
     ///   - refreshAction: Action to do when the user pull the InfiniteScrollView to the top to refresh the content, should be nil if there is no need to refresh anything. Gives an action that must be used in order for refresh to end.
     ///   - spacing: Space between the views.
+    ///   - contentMultiplier: Number that will be used to multiply to the view frame height/width so it can scroll. Can be used to reduce high-speed scroll lag, set it higher if you need to increment the maximum scroll speed.
     ///   - updateBinding: Boolean that can be changed if the InfiniteScrollView's content needs to be updated.
     public init(
         frame: CGRect,
@@ -152,6 +158,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
         orientation: UIInfiniteScrollView<ChangeIndex>.Orientation,
         refreshAction: ((@escaping () -> Void) -> ())? = nil,
         spacing: CGFloat = 0,
+        contentMultiplier: CGFloat = 6,
         updateBinding: Binding<Bool>? = nil
     ) {
         self.frame = frame
@@ -163,6 +170,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
         self.orientation = orientation
         self.refreshAction = refreshAction
         self.spacing = spacing
+        self.contentMultiplier = contentMultiplier
         self.updateBinding = updateBinding
     }
     
@@ -177,6 +185,7 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
             changeIndex: changeIndex,
             changeIndexIncreaseAction: increaseIndexAction,
             changeIndexDecreaseAction: decreaseIndexAction,
+            contentMultiplier: contentMultiplier,
             orientation: orientation,
             refreshAction: refreshAction,
             spacing: spacing
@@ -198,7 +207,9 @@ public struct InfiniteScrollView<Content: View, ChangeIndex>: UIViewRepresentabl
 public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelegate {
     
     /// Number that will be used to multiply to the view frame height/width so it can scroll.
-    private var contentMultiplier: CGFloat = 6
+    ///
+    /// Can be used to reduce high-speed scroll lag, set it higher if you need to increment the maximum scroll speed.
+    private var contentMultiplier: CGFloat
     
     /// Data that will be passed to draw the view and get its frame.
     private var changeIndex: ChangeIndex
@@ -291,6 +302,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     ///   - changeIndex: Data that will be passed to draw the view and get its frame, for the first view that will be displayed at init.
     ///   - changeIndexIncreaseAction: Function that get the ChangeIndex after another. Should return nil if there is no more content to display (end of the ScrollView at the bottom/right).
     ///   - changeIndexDecreaseAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the ScrollView at the top/left).
+    ///   - contentMultiplier: Number that will be used to multiply to the view frame height/width so it can scroll. Can be used to reduce high-speed scroll lag, set it higher if you need to increment the maximum scroll speed.
     ///   - orientation: Orientation of the ScrollView.
     ///   - refreshAction: Action to do when the user pull the InfiniteScrollView to the top to refresh the content, should be nil if there is no need to refresh anything. Gives an action that must be used in order for refresh to end.
     ///   - spacing: Space between the views.
@@ -301,6 +313,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         changeIndex: ChangeIndex,
         changeIndexIncreaseAction: @escaping (ChangeIndex) -> ChangeIndex?,
         changeIndexDecreaseAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        contentMultiplier: CGFloat = 6,
         orientation: Orientation,
         refreshAction: ((@escaping () -> Void) -> ())?,
         spacing: CGFloat = 0
@@ -311,6 +324,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         self.changeIndex = changeIndex
         self.changeIndexIncreaseAction = changeIndexIncreaseAction
         self.changeIndexDecreaseAction = changeIndexDecreaseAction
+        self.contentMultiplier = contentMultiplier
         self.orientation = orientation
         self.refreshAction = refreshAction
         self.spacing = spacing
@@ -319,13 +333,10 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         switch orientation {
         case .horizontal:
             self.contentSize = CGSizeMake(self.frame.size.width * self.contentMultiplier, self.frame.size.height)
-            self.contentInset.top = 0
-            self.contentInset.bottom = 0
         case .vertical:
             self.contentSize = CGSizeMake(self.frame.size.width, self.frame.size.height * self.contentMultiplier)
-            self.contentInset.left = 0
-            self.contentInset.right = 0
         }
+
         self.translatesAutoresizingMaskIntoConstraints = false
         self.showsHorizontalScrollIndicator = false
         self.showsVerticalScrollIndicator = false
