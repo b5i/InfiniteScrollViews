@@ -319,8 +319,12 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         switch orientation {
         case .horizontal:
             self.contentSize = CGSizeMake(self.frame.size.width * self.contentMultiplier, self.frame.size.height)
+            self.contentInset.top = 0
+            self.contentInset.bottom = 0
         case .vertical:
             self.contentSize = CGSizeMake(self.frame.size.width, self.frame.size.height * self.contentMultiplier)
+            self.contentInset.left = 0
+            self.contentInset.right = 0
         }
         self.translatesAutoresizingMaskIntoConstraints = false
         self.showsHorizontalScrollIndicator = false
@@ -383,7 +387,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
             } else if afterIndexUndefined {
                 self.goDown()
             } else {
-                if distanceFromCenter > (contentHeight / 4) {
+                if distanceFromCenter > (contentHeight / contentMultiplier) {
                     self.contentOffset = CGPointMake(currentOffset.x, centerOffsetY)
                     
                     /// Move content by the same amount so it appears to stay still.
