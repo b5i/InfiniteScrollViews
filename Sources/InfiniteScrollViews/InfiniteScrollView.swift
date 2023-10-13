@@ -336,7 +336,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         case .vertical:
             self.contentSize = CGSizeMake(self.frame.size.width, self.frame.size.height * self.contentMultiplier)
         }
-
+        
         self.translatesAutoresizingMaskIntoConstraints = false
         self.showsHorizontalScrollIndicator = false
         self.showsVerticalScrollIndicator = false
@@ -392,7 +392,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
             let contentHeight: CGFloat = self.contentSize.height
             let centerOffsetY: CGFloat = (contentHeight - self.bounds.size.height) / 2
             let distanceFromCenter: CGFloat = abs(currentOffset.y - centerOffsetY)
-        
+            
             if beforeIndexUndefined {
                 self.goUp()
             } else if afterIndexUndefined {
@@ -414,78 +414,71 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
     
     /// Recenter all the views to the top.
     private func goUp() {
-        let topOffset = self.contentSize.height / (contentMultiplier * 2)
-        
         /// Move content by the same amount so it appears to stay still.
         var pointsFromTop: CGFloat = 0
         var changedMainOffset: Bool = false
         for (label, _) in self.visibleLabels {
-            var center: CGPoint = self.convert(label.center, to: self)
+            var origin: CGPoint = self.convert(label.frame.origin, to: self)
             if !changedMainOffset {
-                self.contentOffset.y -= center.y - topOffset
+                self.contentOffset.y -= origin.y
                 changedMainOffset = true
             }
-            center.y = topOffset + pointsFromTop
-            label.center = self.convert(center, to: self)
+            origin.y = pointsFromTop
+            label.frame.origin = self.convert(origin, to: self)
             pointsFromTop += label.frame.height + spacing
         }
     }
     
     /// Recenter all the views to the left.
     private func goLeft() {
-        let leftOffset = self.contentSize.width / (contentMultiplier * 2)
-        
         /// Move content by the same amount so it appears to stay still.
         var pointsFromLeft: CGFloat = 0
         var changedMainOffset: Bool = false
         for (label, _) in self.visibleLabels {
-            var center: CGPoint = self.convert(label.center, to: self)
+            var origin: CGPoint = self.convert(label.frame.origin, to: self)
+            origin.x = pointsFromLeft
             if !changedMainOffset {
-                self.contentOffset.x -= center.x - leftOffset
+                self.contentOffset.x -= origin.x
                 changedMainOffset = true
             }
-            center.x = leftOffset + pointsFromLeft
-            label.center = self.convert(center, to: self)
+            label.frame.origin = self.convert(origin, to: self)
             pointsFromLeft += label.frame.width + spacing
         }
     }
     
     /// Recenter all the views to the bottom.
     private func goDown() {
-        let bottomOffset = self.contentSize.height - (self.contentSize.height / (contentMultiplier * 2))
-        
         /// Move content by the same amount so it appears to stay still.
-        var pointsFromBottom: CGFloat = 0
+        var pointsToTop: CGFloat = self.contentSize.height
         var changedMainOffset: Bool = false
         for (label, _) in self.visibleLabels.reversed() {
-            var center: CGPoint = self.convert(label.center, to: self)
+            pointsToTop -= label.frame.height
+            var origin: CGPoint = self.convert(label.frame.origin, to: self)
             if !changedMainOffset {
-                self.contentOffset.y += bottomOffset - center.y
+                self.contentOffset.y += pointsToTop - origin.y
                 changedMainOffset = true
             }
-            center.y = bottomOffset - pointsFromBottom
-            label.center = self.convert(center, to: self)
-            pointsFromBottom += label.frame.height + spacing
+            origin.y = pointsToTop
+            label.frame.origin = self.convert(origin, to: self)
+            pointsToTop -= spacing
         }
     }
     
     /// Recenter all the views to the right.
     private func goRight() {
-        let rightOffset = self.contentSize.width - (self.contentSize.width / (contentMultiplier * 2))
-        
-        
         /// Move content by the same amount so it appears to stay still.
-        var pointsFromRight: CGFloat = 0
+        var pointsToLeft: CGFloat = self.contentSize.width
         var changedMainOffset: Bool = false
         for (label, _) in self.visibleLabels.reversed() {
-            var center: CGPoint = self.convert(label.center, to: self)
+            pointsToLeft -= label.frame.width
+            var origin: CGPoint = self.convert(label.frame.origin, to: self)
             if !changedMainOffset {
-                self.contentOffset.x += rightOffset - center.x
+                self.contentOffset.x += pointsToLeft - origin.x
                 changedMainOffset = true
             }
-            center.x = rightOffset - pointsFromRight
-            label.center = self.convert(center, to: self)
-            pointsFromRight += label.frame.width + spacing
+            origin.x = pointsToLeft
+            label.frame.origin = self.convert(origin, to: self)
+            pointsToLeft -= spacing
         }
     }
     
@@ -555,7 +548,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         
         var frame: CGRect = newView.frame
         frame.origin.x = rightEdge
-//        frame.origin.y = 0 // avoid having unaligned elements
+        //        frame.origin.y = 0 // avoid having unaligned elements
         
         newView.frame = frame
         
@@ -567,7 +560,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         guard let newView = createAndAppendNewViewToEnd() else { return nil }
         
         var frame: CGRect = newView.frame
-//        frame.origin.x = 0 // avoid having unaligned elements
+        //        frame.origin.x = 0 // avoid having unaligned elements
         frame.origin.y = bottomEdge
         
         newView.frame = frame
@@ -593,7 +586,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         
         var frame: CGRect = newView.frame
         frame.origin.x = leftEdge - frame.size.width
-//        frame.origin.y = 0 // avoid having unaligned elements
+        //        frame.origin.y = 0 // avoid having unaligned elements
         
         newView.frame = frame
         
@@ -605,7 +598,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         guard let newView = createAndAppendNewViewToBeginning() else { return nil }
         
         var frame: CGRect = newView.frame
-//        frame.origin.x = 0 // avoid having unaligned elements
+        //        frame.origin.x = 0 // avoid having unaligned elements
         frame.origin.y = topEdge - frame.size.height
         
         newView.frame = frame
@@ -658,7 +651,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         
         /// Remove labels that have fallen off right edge (not visible anymore).
         if var lastLabel = self.visibleLabels.last?.0 {
-            while (lastLabel.frame.origin.x > maximumVisibleX) {
+            while (CGRectGetMinX(lastLabel.frame) > maximumVisibleX) {
                 lastLabel.removeFromSuperview()
                 self.visibleLabels.removeLast()
                 if self.visibleLabels.isEmpty {
@@ -710,7 +703,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         }
         
         /// If afterIndex is nil it means that there is no more content to be displayed, otherwise it will draw and append it.
-        if afterIndex != nil {            
+        if afterIndex != nil {
             /// Add labels that are missing on bottom side.
             let lastLabel: UIView = self.visibleLabels.last!.0
             var bottomEdge: CGFloat = CGRectGetMaxY(lastLabel.frame)
@@ -726,7 +719,7 @@ public class UIInfiniteScrollView<ChangeIndex>: UIScrollView, UIScrollViewDelega
         
         /// Remove labels that have fallen off bottom edge.
         if var lastLabel = self.visibleLabels.last?.0 {
-            while (lastLabel.frame.origin.y > maximumVisibleY) {
+            while (CGRectGetMinY(lastLabel.frame) > maximumVisibleY) {
                 lastLabel.removeFromSuperview()
                 self.visibleLabels.removeLast()
                 if self.visibleLabels.isEmpty {
