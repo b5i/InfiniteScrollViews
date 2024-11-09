@@ -1,18 +1,18 @@
 # InfiniteScrollViews
 
-InfiniteScrollViews groups some useful SwiftUI and UIKit components.
+InfiniteScrollViews groups some useful SwiftUI, UIKit and AppKit components.
 
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fb5i%2FInfiniteScrollViews%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/b5i/InfiniteScrollViews)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fb5i%2FInfiniteScrollViews%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/b5i/InfiniteScrollViews)
 
 ## A recursive logic
-As we can't really generate an infinity of views and put them in a ScrollView, we need to use **a recursive logic**. The way UIInfiniteScrollView and UIPagedInfiniteScrollView can display an "infinite" amount of content works thanks to this logic:
-1. You have a generic type **ChangeIndex**, it is a piece of data that the component will give you in exchange of a View/UIViewController.
+As we can't really generate an infinity of views and put them in a ScrollView, we need to use **a recursive logic**. The way InfiniteScrollView and PagedInfiniteScrollView can display an "infinite" amount of content works thanks to this logic:
+1. You have a generic type **ChangeIndex**, it is a piece of data that the component will give you in exchange of a View/UIViewController/NSViewController.
 2. When you initialize the component, it takes an argument of type **ChangeIndex** to draw its first view.
-3. When the user will scroll up/down or left/right the component will give you a **ChangeIndex** but to get its "next" or "previous" value, it will use the increase and decrease actions that are provided during initialization. It will be used to draw the "next" or "previous" View/UIViewController with the logic in 1.
+3. When the user will scroll up/down or left/right the component will give you a **ChangeIndex** but to get its "next" or "previous" value, it will use the increase and decrease actions that are provided during initialization. It will be used to draw the "next" or "previous" View/UIViewController/NSViewController with the logic in 1.
 And it goes on and on indefinitely... with one exception: if you return nil when step 3. happens, it will just end the scroll and act like there's nothing more to display.
 Let's see an example:
-You want to draw an "infinite" calendar component like the one in the base Calendar app on iOS. All of this in SwiftUI (but it also work on UIKit!)
+You want to draw an "infinite" calendar component like the one in the base Calendar app on iOS. All of this in SwiftUI (but it also work on UIKit and on AppKit!)
 
 ### Example
 1. First let's see how we initialize the view:
@@ -24,7 +24,7 @@ You want to draw an "infinite" calendar component like the one in the base Calen
         contentFrame: @escaping (ChangeIndex) -> CGRect,
         increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
         decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
-        orientation: UIInfiniteScrollView<ChangeIndex>.Orientation,
+        orientation: UIInfiniteScrollView<ChangeIndex>.Orientation, // or NSInfiniteScrollView<ChangeIndex>.Orientation
         refreshAction: ((@escaping () -> Void) -> ())? = nil,
         spacing: CGFloat = 0,
         updateBinding: Binding<Bool>? = nil
@@ -78,3 +78,10 @@ The infinite equivalent of the UIScrollView component in UIKit.
 
 ### UIPagedInfiniteScrollView
 A simpler version of UIPageViewController in UIKit.
+
+## AppKit
+### NSInfiniteScrollView
+The infinite equivalent of the NSScrollView component in AppKit.
+
+### NSPagedInfiniteScrollView
+Is not supported at the moment.
