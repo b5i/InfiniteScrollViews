@@ -29,18 +29,21 @@ SOFTWARE.
 //
 //  Inspired from https://gist.github.com/beader/08757070b8c8b1134ea8e53f347553d8
 
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
+
 #if canImport(SwiftUI)
 import SwiftUI
-#endif
-import UIKit
-
 /// SwiftUI PagedInfiniteScrollView component.
 ///
 /// Generic types:
 /// - Content: a View.
 /// - ChangeIndex: A type of data that will be given to draw the views and that will be increased and drecreased. It could be for example an Int, a Date or whatever you want.
-@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-public struct PagedInfiniteScrollView<Content: View, ChangeIndex>: UIViewControllerRepresentable {
+@available(iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+public struct PagedInfiniteScrollView<Content: View, ChangeIndex> {
     
     /// Data that will be passed to draw the view and get its frame.
     public var changeIndex: Binding<ChangeIndex>
@@ -113,6 +116,7 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex>: UIViewControl
     /// If the boolean is false (no need to animate), the direction of the animation won't be used.
     ///
     /// In most of the cases you won't want to animate if the two values are equals because it would animate barely everytime during the app use.
+    #if canImport(UIKit)
     public let shouldAnimateBetween: (ChangeIndex, ChangeIndex) -> (Bool, UIPageViewController.NavigationDirection)
     
     /// The style for transitions between pages.
@@ -120,6 +124,13 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex>: UIViewControl
     
     /// The orientation of the page-by-page navigation.
     public let navigationOrientation: UIPageViewController.NavigationOrientation
+    
+    #else
+    public let shouldAnimateBetween: (ChangeIndex, ChangeIndex) -> Bool
+    
+    /// The style for transitions between pages.
+    public let transitionStyle: NSPageController.TransitionStyle
+    #endif
     
     /// Creates a new instance of PagedInfiniteScrollView.
     /// - Parameters:
@@ -130,6 +141,53 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex>: UIViewControl
     ///   - shouldAnimateBetween: Function that will return a boolean indicating if there's need to animate the change between two given ChangeIndex, it also returns the direction of the animation. If the boolean is false (no need to animate), the direction of the animation won't be used. In most of the cases you won't want to animate if the two values are equals because it would animate barely everytime during the app use.
     ///   - transitionStyle: The style for transitions between pages.
     ///   - navigationOrientation: The orientation of the page-by-page navigation.
+    #if os(macOS)
+    public init(
+        changeIndex: Binding<ChangeIndex>,
+        content: @escaping (ChangeIndex) -> Content,
+        increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        shouldAnimateBetween: @escaping (ChangeIndex, ChangeIndex) -> (Bool),
+        transitionStyle: NSPageController.TransitionStyle
+    ) {
+        fatalError("PagedInfiniteScrollView is not implemented for macOS at the moment.")
+        self.changeIndex = changeIndex
+        self.content = content
+        self.increaseIndexAction = increaseIndexAction
+        self.decreaseIndexAction = decreaseIndexAction
+        self.shouldAnimateBetween = shouldAnimateBetween
+        self.transitionStyle = transitionStyle
+    }
+    
+    public func makeNSViewController(context: Context) -> NSPageController {
+        /// Creates the main view and set it in the ``NSPageViewController``.
+        let convertedClosure: (ChangeIndex) -> NSViewController = { changeIndex in
+            return NSHostingController(rootView: content(changeIndex))
+        }
+        let changeIndexNotification: (ChangeIndex) -> () = { changeIndex in
+            self.changeIndex.wrappedValue = changeIndex
+        }
+        let pageViewController = NSPagedInfiniteScrollView(content: convertedClosure, changeIndex: changeIndex.wrappedValue, changeIndexNotification: changeIndexNotification, increaseIndexAction: increaseIndexAction, decreaseIndexAction: decreaseIndexAction, transitionStyle: transitionStyle)
+        
+        let initialViewController = NSHostingController(rootView: content(changeIndex.wrappedValue))
+        initialViewController.storedChangeIndex = changeIndex.wrappedValue
+        
+        return pageViewController
+    }
+    
+    public func updateNSViewController(_ nsViewController: NSPageController, context: Context) {
+        /// Check if the view should update and if it should then it will be.
+        guard let currentView = nsViewController.presentedViewControllers?.first, let currentIndex = currentView.storedChangeIndex as? ChangeIndex else {
+            return
+        }
+        
+        let shouldAnimate: Bool = shouldAnimateBetween(changeIndex.wrappedValue, currentIndex)
+        
+        let initialViewController = NSHostingController(rootView: content(changeIndex.wrappedValue))
+        initialViewController.storedChangeIndex = changeIndex.wrappedValue
+        //nsViewController.setViewControllers([initialViewController], direction: shouldAnimate.1, animated: shouldAnimate.0, completion: nil)
+    }
+    #else
     public init(
         changeIndex: Binding<ChangeIndex>,
         content: @escaping (ChangeIndex) -> Content,
@@ -177,8 +235,187 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex>: UIViewControl
         initialViewController.storedChangeIndex = changeIndex.wrappedValue
         uiViewController.setViewControllers([initialViewController], direction: shouldAnimate.1, animated: shouldAnimate.0, completion: nil)
     }
+    #endif
 }
 
+#if os(macOS)
+extension PagedInfiniteScrollView: NSViewControllerRepresentable {}
+#else
+extension PagedInfiniteScrollView: UIViewControllerRepresentable {}
+#endif
+
+#endif
+
+#if os(macOS)
+/// NSKit component of the NSPagedInfiniteScrollView.
+///
+/// Generic types:
+/// - Content: a View.
+/// - ChangeIndex: A type of data that will be given to draw the views and that will be increased and drecreased. It could be for example an Int, a Date or whatever you want.
+private class NSPagedInfiniteScrollView<ChangeIndex>: NSPageController, NSPageControllerDelegate {
+        
+    /// Data that will be passed to draw the view and get its frame.
+    private var changeIndex: ChangeIndex {
+        didSet {
+            if let changeIndexNotification = self.changeIndexNotification {
+                changeIndexNotification(changeIndex)
+            }
+        }
+    }
+    
+    /// Function called when changeIndex is modified inside the class.
+    ///
+    /// Useful when using Bindings between mutliples UIPagedInfiniteScrollView, see a usage in ``PagedInfiniteScrollView``.
+    private var changeIndexNotification: ((ChangeIndex) -> ())?
+    
+    /// Function called to get the content to display for a particular ChangeIndex.
+    private let content: (ChangeIndex) -> NSViewController
+    
+    /// Function that get the ChangeIndex after another.
+    ///
+    /// Should return nil if there is no more content to display (end of the PagedScrollView at the bottom/right).
+    ///
+    /// For example, if ChangeIndex was Int and it meant the index of an element in an Array:
+    ///
+    /// ```swift
+    /// let myArray: Array = [...]
+    /// let increaseIndexAction: (ChangeIndex) -> ChangeIndex? = { changeIndex in
+    ///     if changeIndex < myArray.count - 1 {
+    ///         return changeIndex + 1
+    ///     } else {
+    ///         return nil /// No more elements in the array.
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Another example would be if ChangeIndex was a Date and we wanted to display every month:
+    /// ```swift
+    /// extension Date {
+    ///     func addingXDays(x: Int) -> Date {
+    ///         Calendar.current.date(byAdding: .day, value: x, to: self) ?? self
+    ///     }
+    /// }
+    /// let increaseIndexAction: (ChangeIndex) -> ChangeIndex? = { changeIndex in
+    ///     return currentDate.addingXDays(x: 30)
+    /// }
+    /// ```
+    private let increaseIndexAction: (ChangeIndex) -> ChangeIndex?
+    
+    /// Function that get the ChangeIndex before another.
+    ///
+    /// Should return nil if there is no more content to display (end of the PagedScrollView at the top/left).
+    ///
+    /// For example, if ChangeIndex was Int and it meant the index of an element in an Array:
+    ///
+    /// ```swift
+    /// let myArray: Array = [...]
+    /// let increaseIndexAction: (ChangeIndex) -> ChangeIndex? = { changeIndex in
+    ///     if changeIndex > 0 {
+    ///         return changeIndex - 1
+    ///     } else {
+    ///         return nil /// We reached the beginning of the array.
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Another example would be if ChangeIndex was a Date and we wanted to display every month:
+    /// ```swift
+    /// extension Date {
+    ///     func addingXDays(x: Int) -> Date {
+    ///         Calendar.current.date(byAdding: .day, value: x, to: self) ?? self
+    ///     }
+    /// }
+    /// let increaseIndexAction: (ChangeIndex) -> ChangeIndex? = { changeIndex in
+    ///     return currentDate.addingXDays(x: -30)
+    /// }
+    /// ```
+    private let decreaseIndexAction: (ChangeIndex) -> ChangeIndex?
+    
+    private var changeIndexForString: [String: ChangeIndex] = [:]
+    
+    private var indexForController: [NSViewController: String] = [:]
+        
+    /// Creates an instance of UIPagedInfiniteScrollView.
+    /// - Parameters:
+    ///   - content: Function called to get the content to display for a particular ChangeIndex.
+    ///   - changeIndex: Data that will be passed to draw the view and get its frame.
+    ///   - changeIndexNotification: Function called when changeIndex is modified inside the class. Useful when using Bindings between mutliples UIPagedInfiniteScrollView, see a usage in ``PagedInfiniteScrollView``.
+    ///   - increaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the top/left). See definition in class to learn more.
+    ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the bottom/right). See definition in class to learn more.
+    ///   - transitionStyle: The style for transitions between pages.
+    ///   - navigationOrientation: The orientation of the page-by-page navigation.
+    ///
+    ///  When you initialize the first view of the PagedInfiniteScrollView, don't forget to set the storedChangeIndex on your UIViewController like this:
+    ///  ```swift
+    ///  let myFirstChangeIndex: ChangeIndex = ...
+    ///  let myViewController: UIViewController = ...
+    ///  myViewController.storedChangeIndex = myFirstChangeIndex
+    ///  ```
+    ///  also make sure that the value you'll store in storedChangeIndex is of the type of ChangeIndex, and not `Binding<ChangingIndex>` for example, otherwise the PagedInfiniteScrollView just won't work.
+    public init(
+        content: @escaping (ChangeIndex) -> NSViewController,
+        changeIndex: ChangeIndex,
+        changeIndexNotification: ((ChangeIndex) -> ())? = nil,
+        increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        transitionStyle: NSPageController.TransitionStyle
+    ) {
+        let convertedClosure: (ChangeIndex) -> NSViewController = { changeIndex in
+            let controller = content(changeIndex)
+            controller.storedChangeIndex = changeIndex
+            return controller
+        }
+        self.content = convertedClosure
+        self.changeIndex = changeIndex
+        self.changeIndexNotification = changeIndexNotification
+        self.increaseIndexAction = increaseIndexAction
+        self.decreaseIndexAction = decreaseIndexAction
+        super.init(nibName: nil, bundle: nil)
+        self.selectedIndex = 0
+        self.delegate = self
+    }
+    
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented, please open a PR if you would like it to be implemented")
+    }
+    
+    public func pageController(_ pageController: NSPageController, identifierFor object: Any) -> NSPageController.ObjectIdentifier {
+        if let controller = (object as? NSViewController), let controllerString = self.indexForController[controller] {
+            return controllerString
+        }
+        
+        return UUID().uuidString
+    }
+    
+    public func pageController(_ pageController: NSPageController, viewControllerForIdentifier identifier: NSPageController.ObjectIdentifier) -> NSViewController {
+        if let changeIndex = self.changeIndexForString[identifier] {
+            return self.content(changeIndex)
+        }
+        return NSViewController()
+    }
+}
+
+/// To store the changeIndex in the ViewController
+///
+/// From: https://tetontech.wordpress.com/2015/11/12/adding-custom-class-properties-with-swift-extensions/
+public extension NSViewController {
+    private struct ChangeIndex {
+        static var changeIndex: Any? = nil
+    }
+    
+    var storedChangeIndex: Any? {
+        get {
+            return objc_getAssociatedObject(self, &ChangeIndex.changeIndex) as Any?
+        }
+        set {
+            if let unwrappedValue = newValue {
+                objc_setAssociatedObject(self, &ChangeIndex.changeIndex, unwrappedValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            }
+        }
+    }
+}
+#else
 /// UIKit component of the UIPagedInfiniteScrollView.
 ///
 /// Generic types:
@@ -362,3 +599,4 @@ public extension UIViewController {
         }
     }
 }
+#endif
