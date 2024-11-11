@@ -199,7 +199,13 @@ public struct InfiniteScrollView<Content: View, ChangeIndex> {
     public func updateNSView(_ nsView: NSInfiniteScrollView<ChangeIndex>, context: Context) {
         if updateBinding?.wrappedValue ?? false {
             nsView.layout()
-            updateBinding?.wrappedValue = false
+            if !Thread.isMainThread {
+                DispatchQueue.main.sync {
+                    updateBinding?.wrappedValue = false
+                }
+            } else {
+                updateBinding?.wrappedValue = false
+            }
         }
     }
     #else

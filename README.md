@@ -84,4 +84,4 @@ A simpler version of UIPageViewController in UIKit.
 The infinite equivalent of the NSScrollView component in AppKit.
 
 ### NSPagedInfiniteScrollView
-Is not supported at the moment.
+The infinite equivalent of the NSPageController component in AppKit.
