@@ -43,7 +43,7 @@ import SwiftUI
 /// Generic types:
 /// - Content: a View.
 /// - ChangeIndex: A type of data that will be given to draw the views and that will be increased and drecreased. It could be for example an Int, a Date or whatever you want.
-@available(macOS 12.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
 public struct PagedInfiniteScrollView<Content: View, ChangeIndex> {
     
     /// Data that will be passed to draw the view and get its frame.
