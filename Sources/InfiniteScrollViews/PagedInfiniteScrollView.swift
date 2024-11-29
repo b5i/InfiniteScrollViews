@@ -382,6 +382,10 @@ public class NSPagedInfiniteScrollView<ChangeIndex>: NSPageController, NSPageCon
                 
         // Set up NSPageController
         self.delegate = self
+    }
+    
+    public override func viewWillAppear() {
+        super.viewWillAppear()
         
         self.selectedIndex = 0
         
