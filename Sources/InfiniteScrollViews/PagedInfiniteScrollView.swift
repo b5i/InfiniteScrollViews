@@ -44,7 +44,7 @@ import SwiftUI
 /// - Content: a View.
 /// - ChangeIndex: A type of data that will be given to draw the views and that will be increased and drecreased. It could be for example an Int, a Date or whatever you want.
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
-public struct PagedInfiniteScrollView<Content: View, ChangeIndex> {
+public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Equatable> {
     
     /// Data that will be passed to draw the view and get its frame.
     public var changeIndex: Binding<ChangeIndex>
@@ -226,16 +226,17 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex> {
     }
     
     public func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
-        /// Check if the view should update and if it should then it will be.
-        guard let currentView = uiViewController.viewControllers?.first, let currentIndex = currentView.storedChangeIndex as? ChangeIndex else {
-            return
+        if currentIndex != changeIndex.wrappedValue {
+            /// Check if the view should update and if it should then it will be.
+            guard let currentView = uiViewController.viewControllers?.first, let currentIndex = currentView.storedChangeIndex as? ChangeIndex else {
+                return
+            }
+            
+            let shouldAnimate: (Bool, UIPageViewController.NavigationDirection) = shouldAnimateBetween(changeIndex.wrappedValue, currentIndex)
+            let initialViewController = UIHostingController(rootView: content(changeIndex.wrappedValue))
+            initialViewController.storedChangeIndex = changeIndex.wrappedValue
+            uiViewController.setViewControllers([initialViewController], direction: shouldAnimate.1, animated: shouldAnimate.0, completion: nil)
         }
-        
-        let shouldAnimate: (Bool, UIPageViewController.NavigationDirection) = shouldAnimateBetween(changeIndex.wrappedValue, currentIndex)
-        
-        let initialViewController = UIHostingController(rootView: content(changeIndex.wrappedValue))
-        initialViewController.storedChangeIndex = changeIndex.wrappedValue
-        uiViewController.setViewControllers([initialViewController], direction: shouldAnimate.1, animated: shouldAnimate.0, completion: nil)
     }
     
     #endif
