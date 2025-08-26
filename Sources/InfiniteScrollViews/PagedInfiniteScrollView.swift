@@ -226,12 +226,12 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Equatable> {
     }
     
     public func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
+        /// Check if the view should update and if it should then it will be.
+        guard let currentView = uiViewController.viewControllers?.first, let currentIndex = currentView.storedChangeIndex as? ChangeIndex else {
+            return
+        }
+        
         if currentIndex != changeIndex.wrappedValue {
-            /// Check if the view should update and if it should then it will be.
-            guard let currentView = uiViewController.viewControllers?.first, let currentIndex = currentView.storedChangeIndex as? ChangeIndex else {
-                return
-            }
-            
             let shouldAnimate: (Bool, UIPageViewController.NavigationDirection) = shouldAnimateBetween(changeIndex.wrappedValue, currentIndex)
             let initialViewController = UIHostingController(rootView: content(changeIndex.wrappedValue))
             initialViewController.storedChangeIndex = changeIndex.wrappedValue
