@@ -44,8 +44,7 @@ import SwiftUI
 /// - Content: a View.
 /// - ChangeIndex: A type of data that will be given to draw the views and that will be increased and drecreased. It could be for example an Int, a Date or whatever you want.
 @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
-public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Equatable> {
-    
+public struct PagedInfiniteScrollView<Content: View, ChangeIndex> {
     /// Data that will be passed to draw the view and get its frame.
     public var changeIndex: Binding<ChangeIndex>
     
@@ -168,6 +167,9 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Equatable> {
     }
     #else
     
+    /// Function that will return the result of the comparaison of two indexes. Can be ommited when `ChangeIndex` is `Equatable`.
+    public let areIndexesEqualAction: (ChangeIndex, ChangeIndex) -> Bool
+    
     /// Function that will return a boolean indicating if there's need to animate the change between two given ChangeIndex, it also returns the direction of the animation.
     ///
     /// If the boolean is false (no need to animate), the direction of the animation won't be used.
@@ -187,9 +189,40 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Equatable> {
     ///   - content: Function called to get the content to display for a particular ChangeIndex.
     ///   - increaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the top/left). See definition in class to learn more.
     ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the bottom/right). See definition in class to learn more.
+    ///   - areIndexesEqualAction: Function that will return the result of the comparaison of two indexes.
     ///   - shouldAnimateBetween: Function that will return a boolean indicating if there's need to animate the change between two given ChangeIndex, it also returns the direction of the animation. If the boolean is false (no need to animate), the direction of the animation won't be used. In most of the cases you won't want to animate if the two values are equals because it would animate barely everytime during the app use.
     ///   - transitionStyle: The style for transitions between pages.
     ///   - navigationOrientation: The orientation of the page-by-page navigation.
+    public init(
+        changeIndex: Binding<ChangeIndex>,
+        content: @escaping (ChangeIndex) -> Content,
+        increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        areIndexesEqualAction: @escaping (ChangeIndex, ChangeIndex) -> Bool,
+        shouldAnimateBetween: @escaping (ChangeIndex, ChangeIndex) -> (Bool, UIPageViewController.NavigationDirection),
+        transitionStyle: UIPageViewController.TransitionStyle,
+        navigationOrientation: UIPageViewController.NavigationOrientation
+    ) {
+        self.changeIndex = changeIndex
+        self.content = content
+        self.increaseIndexAction = increaseIndexAction
+        self.decreaseIndexAction = decreaseIndexAction
+        self.areIndexesEqualAction = areIndexesEqualAction
+        self.shouldAnimateBetween = shouldAnimateBetween
+        self.transitionStyle = transitionStyle
+        self.navigationOrientation = navigationOrientation
+    }
+    
+    /// Creates a new instance of PagedInfiniteScrollView.
+    /// - Parameters:
+    ///   - changeIndex: Data that will be passed to draw the view and get its frame.
+    ///   - content: Function called to get the content to display for a particular ChangeIndex.
+    ///   - increaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the top/left). See definition in class to learn more.
+    ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the bottom/right). See definition in class to learn more.
+    ///   - shouldAnimateBetween: Function that will return a boolean indicating if there's need to animate the change between two given ChangeIndex, it also returns the direction of the animation. If the boolean is false (no need to animate), the direction of the animation won't be used. In most of the cases you won't want to animate if the two values are equals because it would animate barely everytime during the app use.
+    ///   - transitionStyle: The style for transitions between pages.
+    ///   - navigationOrientation: The orientation of the page-by-page navigation.
+    @available(*, deprecated, message: "Please provide a non-optional areIndexesEqualAction, this will be an error in a future version of InfiniteScrollViews.")
     public init(
         changeIndex: Binding<ChangeIndex>,
         content: @escaping (ChangeIndex) -> Content,
@@ -203,6 +236,7 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Equatable> {
         self.content = content
         self.increaseIndexAction = increaseIndexAction
         self.decreaseIndexAction = decreaseIndexAction
+        self.areIndexesEqualAction = { _, _ in return false}
         self.shouldAnimateBetween = shouldAnimateBetween
         self.transitionStyle = transitionStyle
         self.navigationOrientation = navigationOrientation
@@ -231,16 +265,46 @@ public struct PagedInfiniteScrollView<Content: View, ChangeIndex: Equatable> {
             return
         }
         
-        if currentIndex != changeIndex.wrappedValue {
+        if !self.areIndexesEqualAction(currentIndex, changeIndex.wrappedValue) {
             let shouldAnimate: (Bool, UIPageViewController.NavigationDirection) = shouldAnimateBetween(changeIndex.wrappedValue, currentIndex)
             let initialViewController = UIHostingController(rootView: content(changeIndex.wrappedValue))
             initialViewController.storedChangeIndex = changeIndex.wrappedValue
             uiViewController.setViewControllers([initialViewController], direction: shouldAnimate.1, animated: shouldAnimate.0, completion: nil)
         }
     }
-    
     #endif
 }
+#if !os(macOS)
+extension PagedInfiniteScrollView where ChangeIndex: Equatable {
+    /// Creates a new instance of PagedInfiniteScrollView.
+    /// - Parameters:
+    ///   - changeIndex: Data that will be passed to draw the view and get its frame.
+    ///   - content: Function called to get the content to display for a particular ChangeIndex.
+    ///   - increaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the top/left). See definition in class to learn more.
+    ///   - decreaseIndexAction: Function that get the ChangeIndex before another. Should return nil if there is no more content to display (end of the PagedScrollView at the bottom/right). See definition in class to learn more.
+    ///   - shouldAnimateBetween: Function that will return a boolean indicating if there's need to animate the change between two given ChangeIndex, it also returns the direction of the animation. If the boolean is false (no need to animate), the direction of the animation won't be used. In most of the cases you won't want to animate if the two values are equals because it would animate barely everytime during the app use.
+    ///   - transitionStyle: The style for transitions between pages.
+    ///   - navigationOrientation: The orientation of the page-by-page navigation.
+    public init(
+        changeIndex: Binding<ChangeIndex>,
+        content: @escaping (ChangeIndex) -> Content,
+        increaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        decreaseIndexAction: @escaping (ChangeIndex) -> ChangeIndex?,
+        shouldAnimateBetween: @escaping (ChangeIndex, ChangeIndex) -> (Bool, UIPageViewController.NavigationDirection),
+        transitionStyle: UIPageViewController.TransitionStyle,
+        navigationOrientation: UIPageViewController.NavigationOrientation
+    ) {
+        self.changeIndex = changeIndex
+        self.content = content
+        self.increaseIndexAction = increaseIndexAction
+        self.decreaseIndexAction = decreaseIndexAction
+        self.areIndexesEqualAction = { $0 == $1 }
+        self.shouldAnimateBetween = shouldAnimateBetween
+        self.transitionStyle = transitionStyle
+        self.navigationOrientation = navigationOrientation
+    }
+}
+#endif
 
 #if os(macOS)
 extension PagedInfiniteScrollView: NSViewControllerRepresentable {}
