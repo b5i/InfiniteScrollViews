@@ -401,6 +401,9 @@ public class NSPagedInfiniteScrollView<ChangeIndex>: NSPageController, NSPageCon
     private let indexesEqual: (ChangeIndex, ChangeIndex) -> Bool
     
     private var indexForString: [String: ChangeIndex] = [:]
+    
+    /// Flag to track if the initial setup has been completed
+    private var hasCompletedInitialSetup: Bool = false
         
     /// Creates an instance of NSPagedInfiniteScrollView.
     /// - Parameters:
@@ -452,24 +455,36 @@ public class NSPagedInfiniteScrollView<ChangeIndex>: NSPageController, NSPageCon
     public override func viewWillAppear() {
         super.viewWillAppear()
         
-        self.selectedIndex = 0
-        
-        self.arrangedObjects.append(changeIndex)
-        
-        if let previousIndex = decreaseIndexAction(self.changeIndex) {
-            self.arrangedObjects.insert(previousIndex, at: 0)
-            self.selectedIndex = 1
+        // Only setup arranged objects once on initial appearance
+        if !hasCompletedInitialSetup {
+            setupArrangedObjects(for: changeIndex)
+            hasCompletedInitialSetup = true
         }
-                
-        if let nextIndex = increaseIndexAction(self.changeIndex) {
-            self.arrangedObjects.append(nextIndex)
-        }
-    
+        
         self.view.autoresizingMask = [.width, .height]
     }
     
     /// Boolean indicating whether an animation is currently running.
     private var isAnimating: Bool = false
+    
+    /// Sets up the arranged objects with the current index and adjacent pages (previous/next) if available.
+    /// - Parameter currentIndex: The index to center the arranged objects around
+    private func setupArrangedObjects(for currentIndex: ChangeIndex) {
+        self.arrangedObjects = [currentIndex]
+        
+        // Add next page if available
+        if let nextIndex = increaseIndexAction(currentIndex) {
+            self.arrangedObjects.append(nextIndex)
+        }
+        
+        // Add previous page if available and adjust selected index
+        if let previousIndex = decreaseIndexAction(currentIndex) {
+            self.arrangedObjects.insert(previousIndex, at: 0)
+            self.selectedIndex = 1
+        } else {
+            self.selectedIndex = 0
+        }
+    }
     
     /// Programmaticaly change the current index (with animation).
     public func changeCurrentIndex(to newIndex: ChangeIndex) {
@@ -572,16 +587,7 @@ public class NSPagedInfiniteScrollView<ChangeIndex>: NSPageController, NSPageCon
         NSAnimationContext.current.allowsImplicitAnimation = false
         
         if self.selectedIndex == 0 {
-            self.arrangedObjects = [newIndex]
-            
-            if let nextIndex = increaseIndexAction(self.changeIndex) {
-                self.arrangedObjects.append(nextIndex)
-            }
-            
-            if let previousIndex = decreaseIndexAction(self.changeIndex) {
-                self.arrangedObjects.insert(previousIndex, at: 0)
-                self.selectedIndex = 1
-            }
+            setupArrangedObjects(for: newIndex)
         } else if self.selectedIndex > 1 && !self.isAnimating {
             // keep the second and third element
             if let previousIndex = decreaseIndexAction(self.changeIndex) {
@@ -589,6 +595,7 @@ public class NSPagedInfiniteScrollView<ChangeIndex>: NSPageController, NSPageCon
                 self.selectedIndex = 1
             } else {
                 self.arrangedObjects = [self.changeIndex]
+                self.selectedIndex = 0
             }
             
             if let nextIndex = increaseIndexAction(self.changeIndex) {
