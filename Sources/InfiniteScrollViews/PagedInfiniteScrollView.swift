@@ -793,17 +793,35 @@ public class UIPagedInfiniteScrollView<ChangeIndex>: UIPageViewController, UIPag
 ///
 /// From: https://tetontech.wordpress.com/2015/11/12/adding-custom-class-properties-with-swift-extensions/
 public extension UIViewController {
-    private struct ChangeIndex {
-        static var changeIndex: Any? = nil
+    /// Token whose address is the associated-object key backing ``storedChangeIndex``.
+    ///
+    /// Only the uniqueness of this address matters: the runtime never dereferences an
+    /// associated-object key, and this value is never read. Two details are load-bearing:
+    ///
+    /// - The marker is non-empty. A zero-sized type occupies no storage, so every instance of it
+    ///   would hand out the same placeholder address and a write would never be found by the
+    ///   matching read.
+    /// - The static is a `var` taken via `&`. `withUnsafePointer(to:)` receives its argument *by
+    ///   value*, so without the `&` it would point at a per-call-site temporary instead of at this
+    ///   global — the getter and setter would then use different keys and every write would be lost.
+    ///
+    /// It is never mutated; only its address is used.
+    private struct AssociationKey {
+        static var identity = AssociationKey(tag: 0)
+        let tag: UInt8
     }
-    
+
     var storedChangeIndex: Any? {
         get {
-            return objc_getAssociatedObject(self, &ChangeIndex.changeIndex) as Any?
+            withUnsafePointer(to: &AssociationKey.identity) {
+                return objc_getAssociatedObject(self, UnsafeRawPointer($0)) as Any?
+            }
         }
         set {
             if let unwrappedValue = newValue {
-                objc_setAssociatedObject(self, &ChangeIndex.changeIndex, unwrappedValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                withUnsafePointer(to: &AssociationKey.identity) { key in
+                    objc_setAssociatedObject(self, UnsafeRawPointer(key), unwrappedValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                }
             }
         }
     }
